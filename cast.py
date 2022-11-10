@@ -151,7 +151,7 @@ class Raycaster(object):
                 ty = int((y - sprite_y) * 128 / sprite_size)
                 c = sprite["sprite"].get_at((tx, ty))
                 if c != TRANSPARENT:
-                    if x > 500:
+                    if x > 500 and x < 1000:
                         if self.zbuffer[x - 500] >= distance:   
                             self.zbuffer[x - 500] = distance
                             self.point(x, y, c)
@@ -183,12 +183,13 @@ class Raycaster(object):
             d, c, tx = self.cast_ray(a)
             
             x = int(self.width / 2) + i
-            h = (self.height / (d * cos(a - self.player["a"]))) * self.height / 5
+            if d > 0:
+                h = (self.height / (d * cos(a - self.player["a"]))) * self.height / 5
 
-            if self.zbuffer[i] > d:
-                self.draw_stake(x, h, c, tx)
-                self.zbuffer[i] = d
-
+                if self.zbuffer[i] > d:
+                    self.draw_stake(x, h, c, tx)
+                    self.zbuffer[i] = d
+        
         for enemy in enemies:
             self.draw_sprite(enemy)\
 
@@ -197,13 +198,19 @@ screen = pygame.display.set_mode((1000, 500))
 r = Raycaster(screen)
 r.load_map('map.txt')
 
+north, south = pygame.K_UP, pygame.K_DOWN
+east, west = pygame.K_RIGHT, pygame.K_LEFT
+
+change = 0
+horizontal_direction = 1
+vertical_direction = 1
 
 running = True
 while running:
     screen.fill(BLACK)
     screen.fill(SKY, (r.width / 2, 0, r.width, r.height / 2))
     screen.fill(GROUND, (r.width / 2, r.height / 2, r.width, r.height))
-    #r.clearZ()
+    # r.clearZ()
 
     r.render()
 
@@ -220,11 +227,49 @@ while running:
             if event.key == pygame.K_d:
                 r.player["a"] += pi / 10
 
-            if event.key == pygame.K_RIGHT:
-                r.player["x"] -= 10
-            if event.key == pygame.K_LEFT:
-                r.player["x"] += 10 
-            if event.key == pygame.K_UP:
-                r.player["y"] += 10
-            if event.key == pygame.K_DOWN:
-                r.player["y"] -= 10
+            angle = r.player["a"] % (2 * pi)
+            print(angle)
+            if (change == 0 or change == 2) and (angle < pi / 10 or angle > 5 * pi / 3):
+                temp1, temp2 = east, west
+                east, west = north, south
+                north, south = temp1, temp2
+                change = 1
+                horizontal_direction = -1
+                vertical_direction = 1
+                print("aca")
+
+            elif change == 1 and pi/3 <= angle and angle <= 9 * pi / 10:
+                temp1, temp2 = east, west
+                east, west = north, south
+                north, south = temp1, temp2
+                change = 0
+                horitzontal_direction = 1
+                vertical_direction = 1
+                print("c", angle)
+
+            elif (change == 0 or change == 2) and (angle >= 9 * pi / 10 and angle <= 4 * pi / 3):
+                temp1, temp2 = east, west
+                east, west = north, south
+                north, south = temp1, temp2
+                change = 1
+                horizontal_direction = 1
+                vertical_direction = -1
+                print("b")
+
+            elif (change == 0 or change == 1) and 4 * pi / 3 <= angle <= 5 * pi / 3:
+                temp1, temp2 = east, west
+                east, west = north, south
+                north, south = temp1, temp2
+                change = 2
+                horizontal_direction = -1
+                vertical_direction = -1
+                print("a")
+
+            if event.key == east:
+                r.player["x"] -= 10 * horizontal_direction
+            if event.key == west:
+                r.player["x"] += 10 * horizontal_direction
+            if event.key == north:
+                r.player["y"] += 10 * vertical_direction
+            if event.key == south:
+                r.player["y"] -= 10 * vertical_direction
