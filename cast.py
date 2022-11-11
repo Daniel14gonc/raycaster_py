@@ -181,17 +181,23 @@ class Raycaster(object):
         for i in range(0, int(self.width/2)):
             a = self.player["a"] - self.player["fov"] / 2 + self.player["fov"] * i / (self.width / 2)
             d, c, tx = self.cast_ray(a)
-            
             x = int(self.width / 2) + i
-            if d > 0:
-                h = (self.height / (d * cos(a - self.player["a"]))) * self.height / 5
+            h = (self.height / (d * cos(a - self.player["a"]))) * self.height / 5
 
-                if self.zbuffer[i] > d:
-                    self.draw_stake(x, h, c, tx)
-                    self.zbuffer[i] = d
-        
+            if self.zbuffer[i] > d:
+                self.draw_stake(x, h, c, tx)
+                self.zbuffer[i] = d
         for enemy in enemies:
-            self.draw_sprite(enemy)\
+            self.draw_sprite(enemy)
+
+    def check_out_bounds(self):
+        for i in range(0, int(self.width/2)):
+            a = self.player["a"] - self.player["fov"] / 2 + self.player["fov"] * i / (self.width / 2)
+            d, c, tx = self.cast_ray(a)
+            if d <= 10:
+                return True
+
+        return False
 
 pygame.init()
 screen = pygame.display.set_mode((1000, 500))
@@ -210,7 +216,6 @@ while running:
     screen.fill(BLACK)
     screen.fill(SKY, (r.width / 2, 0, r.width, r.height / 2))
     screen.fill(GROUND, (r.width / 2, r.height / 2, r.width, r.height))
-    # r.clearZ()
 
     r.render()
 
@@ -228,7 +233,7 @@ while running:
                 r.player["a"] += pi / 10
 
             angle = r.player["a"] % (2 * pi)
-            print(angle)
+
             if (change == 0 or change == 2) and (angle < pi / 10 or angle > 5 * pi / 3):
                 temp1, temp2 = east, west
                 east, west = north, south
@@ -236,7 +241,6 @@ while running:
                 change = 1
                 horizontal_direction = -1
                 vertical_direction = 1
-                print("aca")
 
             elif change == 1 and pi/3 <= angle and angle <= 9 * pi / 10:
                 temp1, temp2 = east, west
@@ -245,7 +249,6 @@ while running:
                 change = 0
                 horitzontal_direction = 1
                 vertical_direction = 1
-                print("c", angle)
 
             elif (change == 0 or change == 2) and (angle >= 9 * pi / 10 and angle <= 4 * pi / 3):
                 temp1, temp2 = east, west
@@ -254,7 +257,6 @@ while running:
                 change = 1
                 horizontal_direction = 1
                 vertical_direction = -1
-                print("b")
 
             elif (change == 0 or change == 1) and 4 * pi / 3 <= angle <= 5 * pi / 3:
                 temp1, temp2 = east, west
@@ -263,13 +265,20 @@ while running:
                 change = 2
                 horizontal_direction = -1
                 vertical_direction = -1
-                print("a")
 
             if event.key == east:
                 r.player["x"] -= 10 * horizontal_direction
+                if r.check_out_bounds():
+                    r.player["x"] += 10 * horizontal_direction
             if event.key == west:
                 r.player["x"] += 10 * horizontal_direction
+                if r.check_out_bounds():
+                    r.player["x"] -= 10 * horizontal_direction
             if event.key == north:
                 r.player["y"] += 10 * vertical_direction
+                if r.check_out_bounds():
+                    r.player["y"] -= 10 * vertical_direction
             if event.key == south:
                 r.player["y"] -= 10 * vertical_direction
+                if r.check_out_bounds():
+                    r.player["y"] += 10 * vertical_direction
