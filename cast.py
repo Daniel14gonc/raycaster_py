@@ -1,11 +1,12 @@
 import pygame
 from math import cos, sin, pi, atan2
 import random
+from OpenGL.GL import *
 
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
 BACKGROUND = (0, 255, 0)
-TRANSPARENT = (152, 0, 136)
+TRANSPARENT = (255, 255, 255)
 
 SKY = (50, 100, 200)
 GROUND = (200, 200, 100)
@@ -22,35 +23,58 @@ wall1 = pygame.image.load('./Textures/wall1.png')
 wall2 = pygame.image.load('./Textures/wall2.png')
 wall3 = pygame.image.load('./Textures/wall3.png')
 wall4 = pygame.image.load('./Textures/wall4.png')
-wall5 = pygame.image.load('./Textures/wall5.png')
+# wall5 = pygame.image.load('./Textures/wall5.png')
 
 walls = {
-    "1" : wall1,
-    "2" : wall2,
+    "1" : wall2,
+    "2" : wall1,
     "3" : wall3,
-    "4" : wall4,
-    "5" : wall5
+    "4" : wall4
 }
 
-sprite1 = pygame.image.load('./Sprites/sprite1.png')
-sprite2 = pygame.image.load('./Sprites/sprite2.png')
-sprite3 = pygame.image.load('./Sprites/sprite3.png')
-sprite4 = pygame.image.load('./Sprites/sprite4.png')
+sprite1 = pygame.image.load('./Sprites/dementor.png')
+sprite2 = pygame.image.load('./Sprites/dementor2.png')
+sprites = [sprite1, sprite2]
 
 enemies = [
     {
         "n": "s1",
-        "x": 150,
-        "y": 150,
+        "x": 70,
+        "y": 210,
         "sprite": sprite1
     }, 
     {
-        "n": "s2",
-        "x": 300,
-        "y": 400,
-        "sprite": sprite2 
+        "n": "s1",
+        "x": 100,
+        "y": 210,
+        "sprite": sprite2
     }
 ]
+
+
+
+hagrid = pygame.image.load('./Sprites/hagrid.png')
+hedwig = pygame.image.load('./Sprites/hedwig.png')
+
+characters = [
+    {
+        "name": "hagrid",
+        "x": 150,
+        "y": 150,
+        "sprite": hagrid
+    },
+    {
+        "name": "hedwig",
+        "x": 300,
+        "y": 400,
+        "sprite": hedwig
+    }
+]
+
+pygame.init()
+screen = pygame.display.set_mode((1000, 500))
+
+
 
 class Raycaster(object):
     def __init__(self, screen):
@@ -64,20 +88,23 @@ class Raycaster(object):
             "fov": int(pi / 3),
             "a": int(pi / 3)
         }
+        self.number = 0
         self.clearZ()
+        self.dead_enemies = 0
+        self.spell = pygame.mixer.Sound("spell.wav")
 
     def clearZ(self):
-        self.zbuffer = [999999 for z in range(0, int(self.width/2))]
+        self.zbuffer = [999999 for z in range(0, int(self.width))]
 
-    def point(self, x, y, c = WHITE):
+    def point(self, x, y, color = WHITE):
         # No usa aceleracion grafica. Usar pixel o point usado en juego de la vida
-        self.screen.set_at((x, y), c)
+        self.screen.set_at((int(x), int(y)), color)
 
     def block(self, x, y, wall):
-        for i in range(x, x + self.block_size):
-            for j in range(y, y + self.block_size):
-                tx = int((i - x) * 128 / self.block_size)
-                ty = int((j - y) * 128 / self.block_size)
+        for i in range(x, x + 10):
+            for j in range(y, y + 10):
+                tx = int((i - x) * 128 / 10)
+                ty = int((j - y) * 128 / 10)
                 c = wall.get_at((tx, ty))
                 self.point(i, j, c)
 
@@ -120,25 +147,43 @@ class Raycaster(object):
                 tx = int(maxhit * 128 / self.block_size)
                 return d, self.map[j][i], tx
 
-            self.point(x, y)
-            d += 1
+            # self.point(x, y)
+            d += 5
 
     def draw_map(self):
-        for x in range(0, 500, self.block_size):
-            for y in range(0, 500, self.block_size):
-                i = int(x / self.block_size)
-                j = int(y / self.block_size)
+        block = 10
+        for x in range(0, 100, int(block)):
+            for y in range(0, 100, int(block)):
+                i = int(x / block)
+                j = int(y / block)
 
                 if self.map[j][i] !=  ' ':
                     self.block(x, y, walls[self.map[j][i]])
 
     def draw_player(self):
-        self.point(self.player["x"], self.player["y"])
+        self.point(self.player["x"]/5, self.player["y"]/5)
 
     def draw_sprite(self, sprite):
         sprite_a = atan2(sprite["y"] - self.player["y"], sprite["x"] - self.player["x"])
 
         distance = ((self.player["x"] - sprite["x"]) ** 2 + (self.player["y"] - sprite["y"]) ** 2) ** 0.5
+        if "name" in sprite and sprite["name"] == "hagrid":
+            if distance < 90:
+                white = (255, 255, 255)
+                
+                # assigning values to X and Y variable
+                X = 1500
+                Y = 900
+                font = pygame.font.Font('freesansbold.ttf', 16)
+                text = font.render('Deshazte de los dementores y rescata a Hedwig', 
+                    True, BLACK, WHITE)
+                textRect = text.get_rect()
+                textRect.center = (X // 2, Y // 2)
+                screen.blit(text, textRect)
+        if "n" in sprite and sprite["sprite"] == sprite1:
+            sprite["sprite"] = sprite2
+        elif "n" in sprite and sprite["sprite"] == sprite2: 
+            sprite["sprite"] = sprite1
 
         sprite_size = int(500 / distance * 500 / 10)
 
@@ -161,24 +206,27 @@ class Raycaster(object):
         self.draw_player()
         self.clearZ()
 
-        density = 100
+        # density = 100
 
         # minimap
 
+        """
         for i in range(0, density):
             a = self.player["a"] - self.player["fov"] / 2 + self.player["fov"] * i / density
             d, c, t = self.cast_ray(a)
-
+        """
         # separador
-
+        
+        """
         for i in range(0, 500): 
             self.point(499, i)
             self.point(500, i)
             self.point(501, i)
+        """
 
         # draw in 3d
-
-        for i in range(0, int(self.width/2)):
+        
+        for i in range(0, int(self.width)):
             a = self.player["a"] - self.player["fov"] / 2 + self.player["fov"] * i / (self.width / 2)
             d, c, tx = self.cast_ray(a)
             x = int(self.width / 2) + i
@@ -187,11 +235,15 @@ class Raycaster(object):
             if self.zbuffer[i] > d:
                 self.draw_stake(x, h, c, tx)
                 self.zbuffer[i] = d
+        
         for enemy in enemies:
             self.draw_sprite(enemy)
 
+        for character in characters:
+            self.draw_sprite(character)
+
     def check_out_bounds(self):
-        for i in range(0, int(self.width/2)):
+        for i in range(0, int(self.width)):
             a = self.player["a"] - self.player["fov"] / 2 + self.player["fov"] * i / (self.width / 2)
             d, c, tx = self.cast_ray(a)
             if d <= 10:
@@ -199,8 +251,28 @@ class Raycaster(object):
 
         return False
 
-pygame.init()
-screen = pygame.display.set_mode((1000, 500))
+    def shoot(self):
+        indexes = []
+        cont = 0
+        pygame.mixer.Sound.play(self.spell)
+        for sprite in enemies:
+            sprite_a = atan2(sprite["y"] - self.player["y"], sprite["x"] - self.player["x"])
+
+            distance = ((self.player["x"] - sprite["x"]) ** 2 + (self.player["y"] - sprite["y"]) ** 2) ** 0.5
+
+            sprite_size = int(500 / distance * 500 / 10)
+
+            sprite_x = int(500 + (sprite_a - self.player["a"]) * 500 / self.player["fov"] + (sprite_size / 2))
+            sprite_y = int(500 / 2 - sprite_size / 2)
+
+            if 500 < sprite_x < 700:
+                indexes.append(cont)
+            cont += 1
+        
+        for index in indexes:
+            enemies.pop(index)
+            self.dead_enemies += 1
+
 r = Raycaster(screen)
 r.load_map('map.txt')
 
@@ -210,16 +282,22 @@ east, west = pygame.K_RIGHT, pygame.K_LEFT
 change = 0
 horizontal_direction = 1
 vertical_direction = 1
-
+clock = pygame.time.Clock()
 running = True
+
+pygame.mixer.music.load('potter.wav')
+pygame.mixer.music.play(-1)
+
 while running:
     screen.fill(BLACK)
-    screen.fill(SKY, (r.width / 2, 0, r.width, r.height / 2))
-    screen.fill(GROUND, (r.width / 2, r.height / 2, r.width, r.height))
+    screen.fill(SKY, (r.width, 0, r.width, r.height / 2))
+    screen.fill(GROUND, (r.width, r.height / 2, r.width, r.height))
 
     r.render()
 
     pygame.display.flip()
+    clock.tick()
+    # print(clock.get_fps())
     
     for event in pygame.event.get():
         if (event.type == pygame.QUIT):
@@ -231,6 +309,9 @@ while running:
                 r.player["a"] -= pi / 10
             if event.key == pygame.K_d:
                 r.player["a"] += pi / 10
+            
+            if event.key == pygame.K_SPACE:
+                r.shoot()
 
             angle = r.player["a"] % (2 * pi)
 
