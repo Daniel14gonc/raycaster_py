@@ -211,7 +211,7 @@ class Raycaster(object):
                             self.point(x, y, c)
 
     def render(self):
-        #self.draw_map()
+        self.draw_map()
         self.draw_player()
         self.clearZ()
 
