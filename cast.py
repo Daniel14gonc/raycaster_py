@@ -92,9 +92,13 @@ class Raycaster(object):
         self.clearZ()
         self.dead_enemies = 0
         self.spell = pygame.mixer.Sound("spell.wav")
+        self.finished = False
 
     def clearZ(self):
         self.zbuffer = [999999 for z in range(0, int(self.width))]
+
+    def is_finished(self):
+        return self.finished
 
     def point(self, x, y, color = WHITE):
         # No usa aceleracion grafica. Usar pixel o point usado en juego de la vida
@@ -180,6 +184,11 @@ class Raycaster(object):
                 textRect = text.get_rect()
                 textRect.center = (X // 2, Y // 2)
                 screen.blit(text, textRect)
+        if "name" in sprite and sprite["name"] == "hedwig":
+            if distance < 90 and self.dead_enemies == 2:
+                self.finished = True
+                return
+
         if "n" in sprite and sprite["sprite"] == sprite1:
             sprite["sprite"] = sprite2
         elif "n" in sprite and sprite["sprite"] == sprite2: 
@@ -202,7 +211,7 @@ class Raycaster(object):
                             self.point(x, y, c)
 
     def render(self):
-        self.draw_map()
+        #self.draw_map()
         self.draw_player()
         self.clearZ()
 
@@ -267,7 +276,7 @@ class Raycaster(object):
 
             if 500 < sprite_x < 700:
                 indexes.append(cont)
-            cont += 1
+                cont += 1
         
         for index in indexes:
             enemies.pop(index)
@@ -288,16 +297,43 @@ running = True
 pygame.mixer.music.load('potter.wav')
 pygame.mixer.music.play(-1)
 
+enter = False
+
+# create a surface object, image is drawn on it.
+imp = pygame.image.load("./Sprites/init.png").convert()
+
+# Using blit to copy content from one surface to other
+screen.blit(imp, (0, 0))
+# paint screen one time
+pygame.display.flip()
+while not enter:
+    for event in pygame.event.get():
+        if (event.type == pygame.QUIT):
+            running = False
+            enter = True
+        if (event.type == pygame.KEYDOWN):
+            enter = event.key == pygame.K_SPACE
+            
+
 while running:
     screen.fill(BLACK)
     screen.fill(SKY, (r.width, 0, r.width, r.height / 2))
     screen.fill(GROUND, (r.width, r.height / 2, r.width, r.height))
 
+    running = not r.is_finished()
+
     r.render()
+    X = 500
+    Y = 500
+    font = pygame.font.Font('freesansbold.ttf', 30)
+    text = font.render(str(clock.get_fps()) + 'fps', 
+        True, WHITE, BLACK)
+    textRect = text.get_rect()
+    textRect.center = (X // 2, Y // 2)
+    screen.blit(text, textRect)
 
     pygame.display.flip()
     clock.tick()
-    # print(clock.get_fps())
     
     for event in pygame.event.get():
         if (event.type == pygame.QUIT):
@@ -363,3 +399,16 @@ while running:
                 r.player["y"] -= 10 * vertical_direction
                 if r.check_out_bounds():
                     r.player["y"] += 10 * vertical_direction
+enter = False
+imp = pygame.image.load("./Sprites/finish.png").convert()
+
+# Using blit to copy content from one surface to other
+screen.blit(imp, (0, 0))
+# paint screen one time
+pygame.display.flip()
+while not enter:
+    for event in pygame.event.get():
+        if (event.type == pygame.QUIT):
+            enter = True
+        if (event.type == pygame.KEYDOWN):
+            enter = event.key == pygame.K_SPACE
